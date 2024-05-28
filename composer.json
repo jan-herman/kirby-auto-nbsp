@@ -1,0 +1,30 @@
+{
+    "name": "jan-herman/kirby-auto-nbsp",
+    "description": "Replaces spaces with non-breaking spaces (&nbsp;) to prevent short words (like prepositions, conjunctions, and articles) from appearing at the end of a line.",
+    "version": "1.0.0",
+    "type": "kirby-plugin",
+    "license": "MIT",
+    "homepage": "https://github.com/jan-herman/kirby-auto-nbsp",
+    "authors": [
+        {
+            "name": "Jan Herman",
+            "email": "mail@janherman.com",
+            "homepage": "https://janherman.com"
+        }
+    ],
+    "require": {
+        "php": "^8.1",
+        "getkirby/composer-installer": "^1.2"
+    },
+    "extra": {
+        "installer-name": "auto-nbsp"
+    },
+    "config": {
+        "optimize-autoloader": true
+    },
+    "autoload": {
+        "psr-4": {
+            "JanHerman\\AutoNbsp\\": "lib/"
+        }
+    }
+}
