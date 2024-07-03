@@ -8,7 +8,7 @@ use Latte\Runtime\Html;
 
 Kirby::plugin('jan-herman/auto-nbsp', [
     'options' => [
-        'debug' => true,
+        'debug' => false,
         'customReplacements' => [], // 'language_code or *' => 'prepositions_conjunctions', 'articles', 'abbreviations', 'units', 'months', 'titles_before_name', 'titles_after_name'
         'rules' => [
             'prepositionsConjunctions' => true,

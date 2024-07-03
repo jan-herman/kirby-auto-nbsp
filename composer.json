@@ -1,7 +1,7 @@
 {
     "name": "jan-herman/kirby-auto-nbsp",
     "description": "Replaces spaces with non-breaking spaces (&nbsp;) to prevent short words (like prepositions, conjunctions, and articles) from appearing at the end of a line.",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "type": "kirby-plugin",
     "license": "MIT",
     "homepage": "https://github.com/jan-herman/kirby-auto-nbsp",

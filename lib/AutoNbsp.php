@@ -41,6 +41,9 @@ class AutoNbsp
      */
     private const DEFAULT_REPLACEMENTS = [
         '*' => [
+            'prepositions_conjunctions' => [
+                '&', '&amp;'
+            ],
             'titles_before_name' => [
                 'Bc.', 'BcA.', 'ing.', 'Ing.', 'Ing.arch.', 'MUDr.', 'MVDr.', 'MgA.', 'Mgr.', 'JUDr.', 'PhDr.', 'RNDr.', 'PharmDr.', 'ThLic.', 'ThDr.', 'prof.', 'doc.', 'PaedDr.', 'Dr.', 'PhMr.'
             ],
