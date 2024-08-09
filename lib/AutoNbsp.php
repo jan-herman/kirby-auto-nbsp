@@ -56,7 +56,7 @@ class AutoNbsp
         ],
         'cs' => [
             'prepositions_conjunctions' => [
-                'a', 'i', 'o', 'u', 'k', 's', 'v', 'z', 'by', 'co', 'či', 'do', 'je', 'ke', 'ku', 'na', 'no', 'od', 'po', 'se', 'ta', 'to', 've', 'za', 'ze', 'že', 'aby', 'byl', 'což', 'jen', 'když', 'kde', 'kdy', 'který', 'která', 'které', 'nad', 'pod', 'pro', 'před', 'při', 'tak'
+                'a', 'i', 'o', 'u', 'k', 's', 'v', 'z', 'až', 'by', 'co', 'či', 'do', 'je', 'ke', 'ku', 'na', 'no', 'od', 'po', 'se', 'ta', 'to', 've', 'za', 'ze', 'že', 'aby', 'byl', 'což', 'jen', 'když', 'kde', 'kdy', 'který', 'která', 'které', 'nad', 'pod', 'pro', 'před', 'při', 'tak'
             ],
             'abbreviations' => [
                 'cca.', 'č.', 'čís.', 'čj.', 'čp.', 'fa', 'fě', 'fy', 'kupř.', 'mj.', 'např.', 'p.', 'P.', 'pí', 'Pí.', 'popř.', 'př.', 'přib.', 'přibl.', 'r.', 'sl.', 'str.', 'sv.', 'tj.', 'tzn.', 'tzv.', 'zvl.'
