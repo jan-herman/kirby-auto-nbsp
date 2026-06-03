@@ -150,7 +150,7 @@ class AutoNbsp
      * @param string|null $language The language code (e.g., 'en')
      * @return array The replacements for the specified key and language
      */
-    public function getReplacements(string $key = null, string $language = null): array
+    public function getReplacements(?string $key = null, ?string $language = null): array
     {
         if (!$key && !$language) {
             return $this->replacements;
@@ -223,11 +223,12 @@ class AutoNbsp
      * Replace spaces before months with non-breaking spaces.
      *
      * @param string $string The input string
+     * @param string|null $language Language code (e.g., 'en', 'cs')
      * @return string The processed string
      */
-    public function beforeMonths(string $string): string
+    public function beforeMonths(string $string, ?string $language = null): string
     {
-        $months = $this->getReplacements('months');
+        $months = $this->getReplacements('months', $language);
         $pattern = '/(?<=\d)(\.?)\s+(' . $this->arrayToRegex($months) . ')(?=[^>]*?(<|$))/ui';
         return preg_replace($pattern, '$1' . $this->nbsp . '$2', $string);
     }
@@ -236,11 +237,12 @@ class AutoNbsp
      * Replace spaces before units with non-breaking spaces.
      *
      * @param string $string The input string
+     * @param string|null $language Language code (e.g., 'en', 'cs')
      * @return string The processed string
      */
-    public function beforeUnits(string $string): string
+    public function beforeUnits(string $string, ?string $language = null): string
     {
-        $units = $this->getReplacements('units');
+        $units = $this->getReplacements('units', $language);
         $pattern = '/(\d+)\s+(' . $this->arrayToRegex($units) . ')(?!\w)(?=[^>]*?(<|$))/u';
         return preg_replace($pattern, '$1' . $this->nbsp . '$2', $string);
     }
@@ -249,16 +251,17 @@ class AutoNbsp
      * Replace specified spaces with non-breaking spaces in the given string based on configuration.
      *
      * @param string $string The input string
+     * @param string|null $language Language code (e.g., 'en', 'cs')
      * @return string The processed string
      */
-    public function replace(string $string): string
+    public function replace(string $string, ?string $language = null): string
     {
         // spaces after words
         $after_words = array_merge(
-            $this->prepositions_conjunctions ? $this->getReplacements('prepositions_conjunctions') : [],
-            $this->articles ? $this->getReplacements('articles') : [],
-            $this->titles ? $this->getReplacements('titles_before_name') : [],
-            $this->abbreviations ? $this->getReplacements('abbreviations') : []
+            $this->prepositions_conjunctions ? $this->getReplacements('prepositions_conjunctions', $language) : [],
+            $this->articles ? $this->getReplacements('articles', $language) : [],
+            $this->titles ? $this->getReplacements('titles_before_name', $language) : [],
+            $this->abbreviations ? $this->getReplacements('abbreviations', $language) : []
         );
         if ($after_words) {
             $string = $this->afterWords($string, $after_words);
@@ -266,13 +269,13 @@ class AutoNbsp
 
         // spaces before words
         if ($this->titles) {
-            $before_words = $this->getReplacements('titles_after_name');
+            $before_words = $this->getReplacements('titles_after_name', $language);
             $string = $this->beforeWords($string, $before_words);
         }
 
         // spaces between number and a month
         if ($this->months) {
-            $string = $this->beforeMonths($string);
+            $string = $this->beforeMonths($string, $language);
         }
 
         // spaces after a number
@@ -287,7 +290,7 @@ class AutoNbsp
 
         // spaces between a number and a unit
         if ($this->units) {
-            $string = $this->beforeUnits($string);
+            $string = $this->beforeUnits($string, $language);
         }
 
         return $string;

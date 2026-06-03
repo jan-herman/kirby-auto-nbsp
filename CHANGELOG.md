@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.0] - 2026-06-03
+### Added
+- `$language` parameter to `nbsp()` helper function, field method and latte filter
+
+
 ## [1.0.2] - 2024-08-09
 ### Added
 - "až" to Czech conjunctions

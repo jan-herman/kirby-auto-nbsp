@@ -1,6 +1,7 @@
 <?php
 
 use Kirby\Cms\App as Kirby;
+use Kirby\Content\Field;
 use JanHerman\AutoNbsp\AutoNbsp;
 use Latte\Runtime\Html;
 
@@ -23,39 +24,42 @@ Kirby::plugin('jan-herman/auto-nbsp', [
     ],
     // field method
     'fieldMethods' => [
-        'nbsp' => function ($field) {
-            $field->value = nbsp($field->value);
+        'nbsp' => function (Field $field, ?string $language = null) {
+            $field->value = nbsp($field->value, $language);
             return $field;
         }
     ],
     // latte filter
     'hooks' => [
         'jan-herman.barista.init:after' => function ($latte) {
-            $latte->addFilter('nbsp', function (string $string) {
-                $formated_string = nbsp($string);
+            $latte->addFilter('nbsp', function (string $string, ?string $language = null) {
+                $formated_string = nbsp($string, $language);
                 return new Html($formated_string);
             });
         }
     ],
 ]);
 
-function nbsp(string $string): string
-{
-    $kirby = kirby();
+// Helper function
+if (!function_exists('nbsp')) {
+    function nbsp(string $string, ?string $language = null): string
+    {
+        $kirby = kirby();
 
-    $auto_nbsp = AutoNbsp::getInstance(
-        language: $kirby->language()->code(),
-        custom_replacements: option('jan-herman.auto-nbsp.customReplacements'),
-        prepositions_conjunctions: option('jan-herman.auto-nbsp.rules.prepositionsConjunctions'),
-        articles: option('jan-herman.auto-nbsp.rules.articles'),
-        abbreviations: option('jan-herman.auto-nbsp.rules.abbreviations'),
-        titles: option('jan-herman.auto-nbsp.rules.titles'),
-        units: option('jan-herman.auto-nbsp.rules.units'),
-        months: option('jan-herman.auto-nbsp.rules.months'),
-        after_numbers: option('jan-herman.auto-nbsp.rules.afterNumbers'),
-        between_numbers: option('jan-herman.auto-nbsp.rules.betweenNumbers'),
-        debug: option('jan-herman.auto-nbsp.debug')
-    );
+        $auto_nbsp = AutoNbsp::getInstance(
+            language: $kirby->language()->code(),
+            custom_replacements: option('jan-herman.auto-nbsp.customReplacements'),
+            prepositions_conjunctions: option('jan-herman.auto-nbsp.rules.prepositionsConjunctions'),
+            articles: option('jan-herman.auto-nbsp.rules.articles'),
+            abbreviations: option('jan-herman.auto-nbsp.rules.abbreviations'),
+            titles: option('jan-herman.auto-nbsp.rules.titles'),
+            units: option('jan-herman.auto-nbsp.rules.units'),
+            months: option('jan-herman.auto-nbsp.rules.months'),
+            after_numbers: option('jan-herman.auto-nbsp.rules.afterNumbers'),
+            between_numbers: option('jan-herman.auto-nbsp.rules.betweenNumbers'),
+            debug: option('jan-herman.auto-nbsp.debug')
+        );
 
-    return $auto_nbsp->replace($string);
+        return $auto_nbsp->replace($string, $language);
+    }
 }
