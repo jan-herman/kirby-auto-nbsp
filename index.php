@@ -3,24 +3,16 @@
 use Kirby\Cms\App as Kirby;
 use Kirby\Content\Field;
 use JanHerman\AutoNbsp\AutoNbsp;
-use Latte\Runtime\Html;
+use Latte\ContentType;
+use Latte\Runtime\FilterInfo;
 
 @include_once __DIR__ . '/vendor/autoload.php';
 
 Kirby::plugin('jan-herman/auto-nbsp', [
     'options' => [
         'debug' => false,
-        'customReplacements' => [], // 'language_code or *' => 'prepositions_conjunctions', 'articles', 'abbreviations', 'units', 'months', 'titles_before_name', 'titles_after_name'
-        'rules' => [
-            'prepositionsConjunctions' => true,
-            'articles' => true,
-            'abbreviations' => true,
-            'titles' => true,
-            'units' => false,
-            'months' => true,
-            'afterNumbers' => true,
-            'betweenNumbers' => true,
-        ]
+        'customReplacements' => [], // 'language code or *' => 'prepositionsConjunctions', 'articles', 'abbreviations', 'units', 'months', 'titlesBeforeName', 'titlesAfterName', 'symbolsBeforeNumbers', 'ordinalSuffixes', 'ordinalWordCases'
+        'rules' => AutoNbsp::DEFAULT_RULES,
     ],
     // field method
     'fieldMethods' => [
@@ -32,9 +24,16 @@ Kirby::plugin('jan-herman/auto-nbsp', [
     // latte filter
     'hooks' => [
         'jan-herman.barista.init:after' => function ($latte) {
-            $latte->addFilter('nbsp', function (string $string, ?string $language = null) {
-                $formated_string = nbsp($string, $language);
-                return new Html($formated_string);
+            $latte->addFilter('nbsp', function (FilterInfo $info, string $string, ?string $language = null) {
+                $info->validate([null, ContentType::Text, ContentType::Html], 'nbsp');
+                $formattedString = nbsp($string, $language);
+
+                if ($info->contentType !== ContentType::Html) {
+                    $formattedString = (string) safe_html($formattedString);
+                }
+
+                $info->contentType = ContentType::Html;
+                return $formattedString;
             });
         }
     ],
@@ -44,22 +43,17 @@ Kirby::plugin('jan-herman/auto-nbsp', [
 if (!function_exists('nbsp')) {
     function nbsp(string $string, ?string $language = null): string
     {
-        $kirby = kirby();
+        $language ??= kirby()->languageCode() ?? option('language', 'en');
 
-        $auto_nbsp = AutoNbsp::getInstance(
-            language: $kirby->language()->code(),
-            custom_replacements: option('jan-herman.auto-nbsp.customReplacements'),
-            prepositions_conjunctions: option('jan-herman.auto-nbsp.rules.prepositionsConjunctions'),
-            articles: option('jan-herman.auto-nbsp.rules.articles'),
-            abbreviations: option('jan-herman.auto-nbsp.rules.abbreviations'),
-            titles: option('jan-herman.auto-nbsp.rules.titles'),
-            units: option('jan-herman.auto-nbsp.rules.units'),
-            months: option('jan-herman.auto-nbsp.rules.months'),
-            after_numbers: option('jan-herman.auto-nbsp.rules.afterNumbers'),
-            between_numbers: option('jan-herman.auto-nbsp.rules.betweenNumbers'),
-            debug: option('jan-herman.auto-nbsp.debug')
+        static $autoNbsp = null;
+
+        $autoNbsp ??= new AutoNbsp(
+            language: option('language', 'en'),
+            customReplacements: option('jan-herman.auto-nbsp.customReplacements', []),
+            rules: option('jan-herman.auto-nbsp.rules', []),
+            debug: option('jan-herman.auto-nbsp.debug', false)
         );
 
-        return $auto_nbsp->replace($string, $language);
+        return $autoNbsp->replace($string, $language);
     }
 }

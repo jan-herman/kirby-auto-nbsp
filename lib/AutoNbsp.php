@@ -13,19 +13,42 @@ namespace JanHerman\AutoNbsp;
  */
 class AutoNbsp
 {
-    /**
-     * Singleton instance of the class
-     *
-     * @var AutoNbsp|null
-     */
-    protected static ?AutoNbsp $instance = null;
+    public const DEFAULT_RULES = [
+        'prepositionsConjunctions' => true,
+        'articles' => true,
+        'abbreviations' => true,
+        'titles' => true,
+        'units' => true,
+        'months' => true,
+        'afterNumbers' => true,
+        'betweenNumbers' => true,
+        'nameInitials' => true,
+        'symbolsBeforeNumbers' => true,
+        'ordinals' => true,
+        'compoundAbbreviations' => true,
+        'ratios' => true,
+    ];
 
     /**
      * Array of replacements for non-breaking spaces
      *
      * @var array
      */
-    private array $replacements;
+    private array $replacements = [];
+
+    /**
+     * Generated regex alternatives keyed by their source words
+     *
+     * @var array
+     */
+    private array $regexCache = [];
+
+    /**
+     * Enabled replacement rules
+     *
+     * @var array
+     */
+    private array $rules;
 
     /**
      * Non-breaking space character (or HTML entity)
@@ -35,101 +58,21 @@ class AutoNbsp
     private string $nbsp;
 
     /**
-     * Default replacement patterns for various languages and contexts
-     *
-     * @var array
-     */
-    private const DEFAULT_REPLACEMENTS = [
-        '*' => [
-            'prepositions_conjunctions' => [
-                '&', '&amp;'
-            ],
-            'titles_before_name' => [
-                'Bc.', 'BcA.', 'ing.', 'Ing.', 'Ing.arch.', 'MUDr.', 'MVDr.', 'MgA.', 'Mgr.', 'JUDr.', 'PhDr.', 'RNDr.', 'PharmDr.', 'ThLic.', 'ThDr.', 'prof.', 'doc.', 'PaedDr.', 'Dr.', 'PhMr.'
-            ],
-            'titles_after_name' => [
-                'DiS.', 'MBA', 'Ph.D.', 'Th.D.', 'CSc.', 'DrSc.', 'dr. h. c.'
-            ],
-            'units' => [
-                'm', 'g', 'l', 'q', 't', 'w', 'J', '%', 'ks', 'mm', 'cm', 'km', 'mg', 'dkg', 'kg', 'ml', 'cl', 'dl', 'hl', 'm³', 'km³', 'mm²', 'cm²', 'dm²', 'm²', 'km²', 'ha', 'Pa', 'hPa', 'kPa', 'MPa', 'bar', 'mbar', 'nbar', 'atm', 'psi', 'kW', 'MW', 'HP', 'm/s', 'km/h', 'm/min', 'MPH', 'cal', 'Wh', 'kWh', 'kp·m', '°C', '°F', 'kB', 'dB', 'MB', 'GB', 'kHz', 'MHz', 'Kč', '€', '%'
-            ]
-        ],
-        'cs' => [
-            'prepositions_conjunctions' => [
-                'a', 'i', 'o', 'u', 'k', 's', 'v', 'z', 'až', 'by', 'co', 'či', 'do', 'je', 'ke', 'ku', 'na', 'no', 'od', 'po', 'se', 'ta', 'to', 've', 'za', 'ze', 'že', 'aby', 'byl', 'což', 'jen', 'když', 'kde', 'kdy', 'který', 'která', 'které', 'nad', 'pod', 'pro', 'před', 'při', 'tak'
-            ],
-            'abbreviations' => [
-                'cca.', 'č.', 'čís.', 'čj.', 'čp.', 'fa', 'fě', 'fy', 'kupř.', 'mj.', 'např.', 'p.', 'P.', 'pí', 'Pí.', 'popř.', 'př.', 'přib.', 'přibl.', 'r.', 'sl.', 'str.', 'sv.', 'tj.', 'tzn.', 'tzv.', 'zvl.'
-            ],
-            'months' => [
-                'leden', 'únor', 'březen', 'duben', 'květen', 'červen', 'červenec', 'srpen', 'září', 'říjen', 'listopad', 'prosinec',
-                'ledna', 'února', 'března', 'dubna', 'května', 'června', 'července', 'srpna', 'září', 'října', 'listopadu', 'prosince'
-            ],
-        ],
-        'en' => [
-            'articles' => [
-                'a', 'an', 'the'
-            ],
-            'prepositions_conjunctions' => [
-                'of', 'in', 'on', 'at', 'by', 'to', 'for', 'and', '&', 'but', 'or', 'nor', 'yet', 'so', 'if', 'as'
-            ],
-            'abbreviations' => [
-                'i.e.', 'e.g.', 'vs.'
-            ],
-            'titles_before_name' => [
-                'Mr.', 'Mrs.', 'Ms.'
-            ],
-            'months' => [
-                'january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december', 'a.m.', 'p.m.',
-            ],
-        ]
-    ];
-
-    /**
      * AutoNbsp constructor.
      *
      * @param string $language Language code (e.g., 'en', 'cs')
-     * @param array $custom_replacements Custom replacements to merge with the default ones
-     * @param bool $prepositions_conjunctions Flag to process prepositions and conjunctions
-     * @param bool $articles Flag to process articles
-     * @param bool $abbreviations Flag to process abbreviations
-     * @param bool $titles Flag to process titles
-     * @param bool $units Flag to process units
-     * @param bool $months Flag to process months
-     * @param bool $after_numbers Flag to process spaces after numbers
-     * @param bool $between_numbers Flag to process spaces between numbers
+     * @param array $customReplacements Custom replacements to merge with the default ones
+     * @param array $rules Replacement rules to override
      * @param bool $debug Flag to enable debug mode
      */
     public function __construct(
         private string $language = 'en',
-        private array $custom_replacements = [],
-        private bool $prepositions_conjunctions = true,
-        private bool $articles = true,
-        private bool $abbreviations = true,
-        private bool $titles = true,
-        private bool $units = false,
-        private bool $months = true,
-        private bool $after_numbers = true,
-        private bool $between_numbers = true,
+        private array $customReplacements = [],
+        array $rules = [],
         private bool $debug = false
     ) {
-        $this->replacements = array_merge(self::DEFAULT_REPLACEMENTS, $this->custom_replacements);
+        $this->rules = array_replace(self::DEFAULT_RULES, $rules);
         $this->nbsp = $this->debug ? '<span style="background:red;">&nbsp;</span>' : '&nbsp;';
-    }
-
-    /**
-     * Get the singleton instance of AutoNbsp.
-     *
-     * @param mixed ...$args Arguments to pass to the constructor
-     * @return AutoNbsp The singleton instance
-     */
-    public static function getInstance(...$args): AutoNbsp
-    {
-        if (self::$instance === null) {
-            self::$instance = new self(...$args);
-        }
-
-        return self::$instance;
     }
 
     /**
@@ -140,7 +83,102 @@ class AutoNbsp
      */
     private function arrayToRegex(array $words): string
     {
-        return implode('|', array_map(fn ($str) => preg_quote($str, '/'), $words));
+        $cacheKey = serialize($words);
+
+        if (isset($this->regexCache[$cacheKey])) {
+            return $this->regexCache[$cacheKey];
+        }
+
+        usort($words, fn ($a, $b) => strlen($b) <=> strlen($a));
+
+        return $this->regexCache[$cacheKey] = implode('|', array_map(fn ($str) => preg_quote($str, '/'), $words));
+    }
+
+    /**
+     * Load and cache replacements for a language.
+     *
+     * @param string $language Language code or * for global replacements
+     * @return array The replacements for the requested language
+     */
+    private function loadReplacements(string $language): array
+    {
+        if (array_key_exists($language, $this->replacements)) {
+            return $this->replacements[$language];
+        }
+
+        $filename = $language === '*' ? 'global' : $language;
+        $defaults = [];
+
+        if (preg_match('/^[a-z0-9_-]+$/iD', $filename)) {
+            $file = dirname(__DIR__) . '/replacements/' . $filename . '.php';
+
+            if (is_file($file)) {
+                $defaults = require $file;
+
+                if (!is_array($defaults)) {
+                    throw new \UnexpectedValueException("Replacement file {$file} must return an array");
+                }
+            }
+        }
+
+        $customReplacements = $this->customReplacements[$language] ?? [];
+
+        if (!is_array($customReplacements)) {
+            throw new \UnexpectedValueException("Custom replacements for {$language} must be an array");
+        }
+
+        foreach ($customReplacements as $key => $values) {
+            if (!is_array($values)) {
+                throw new \UnexpectedValueException("Custom replacement group {$key} for {$language} must be an array");
+            }
+
+            $defaults[$key] = array_values(array_unique(array_merge($defaults[$key] ?? [], $values)));
+        }
+
+        return $this->replacements[$language] = $defaults;
+    }
+
+    /**
+     * Load all available replacement files and custom replacements.
+     *
+     * @return array All replacements keyed by language
+     */
+    private function loadAllReplacements(): array
+    {
+        $languages = ['*'];
+
+        foreach (glob(dirname(__DIR__) . '/replacements/*.php') ?: [] as $file) {
+            $language = pathinfo($file, PATHINFO_FILENAME);
+            $languages[] = $language === 'global' ? '*' : $language;
+        }
+
+        $languages = array_unique(array_merge($languages, array_keys($this->customReplacements)));
+        $replacements = [];
+
+        foreach ($languages as $language) {
+            $replacements[$language] = $this->loadReplacements($language);
+        }
+
+        return $replacements;
+    }
+
+    /**
+     * Merge replacement maps without replacing complete groups.
+     *
+     * @param array ...$replacementSets Replacement maps to merge
+     * @return array The merged replacement map
+     */
+    private function mergeReplacementGroups(array ...$replacementSets): array
+    {
+        $merged = [];
+
+        foreach ($replacementSets as $replacementSet) {
+            foreach ($replacementSet as $key => $values) {
+                $merged[$key] = array_merge($merged[$key] ?? [], $values);
+            }
+        }
+
+        return $merged;
     }
 
     /**
@@ -152,21 +190,21 @@ class AutoNbsp
      */
     public function getReplacements(?string $key = null, ?string $language = null): array
     {
-        if (!$key && !$language) {
-            return $this->replacements;
+        if ($key === null && $language === null) {
+            return $this->loadAllReplacements();
         }
 
-        if (!$key && $language) {
-            $global = $this->replacements['*'] ?? [];
-            $language_specific = $this->replacements[$language] ?? [];
+        if ($key === null) {
+            $global = $this->loadReplacements('*');
+            $languageSpecific = $this->loadReplacements($language);
 
-            return array_merge($global, $language_specific);
+            return $this->mergeReplacementGroups($global, $languageSpecific);
         }
 
-        $global = $this->replacements['*'][$key] ?? [];
-        $language_specific = $this->replacements[$language ?: $this->language][$key] ?? [];
+        $global = $this->loadReplacements('*')[$key] ?? [];
+        $languageSpecific = $this->loadReplacements($language ?? $this->language)[$key] ?? [];
 
-        return array_merge($global, $language_specific);
+        return array_merge($global, $languageSpecific);
     }
 
     /**
@@ -179,7 +217,10 @@ class AutoNbsp
     public function afterWords(string $string, array $words): string
     {
         $pattern = '/(?<!\w)(' . $this->arrayToRegex($words) . ')\s+(?=[^>]*?(<|$))/ui';
-        return preg_replace($pattern, '$1' . $this->nbsp, $string);
+        return preg_replace_callback($pattern, function ($matches) {
+            $word = preg_replace('/\s+/u', $this->nbsp, $matches[1]);
+            return $word . $this->nbsp;
+        }, $string);
     }
 
     /**
@@ -192,7 +233,10 @@ class AutoNbsp
     public function beforeWords(string $string, array $words): string
     {
         $pattern = '/\s+(' . $this->arrayToRegex($words) . ')(?!\w)(?=[^>]*?(<|$))/ui';
-        return preg_replace($pattern, $this->nbsp . '$1', $string);
+        return preg_replace_callback($pattern, function ($matches) {
+            $word = preg_replace('/\s+/u', $this->nbsp, $matches[1]);
+            return $this->nbsp . $word;
+        }, $string);
     }
 
     /**
@@ -215,8 +259,102 @@ class AutoNbsp
      */
     public function betweenNumbers(string $string): string
     {
+        $rangePattern = '/(?<=\d)(\.?)\s+([-–—])\s+(?=\d)(?=[^>]*?(<|$))/u';
+        $string = preg_replace($rangePattern, '$1' . $this->nbsp . '$2' . $this->nbsp, $string);
+
         $pattern = '/(?<=\d)(\.?)\s+(\d)(?=[^>]*?(<|$))/';
         return preg_replace($pattern, '$1' . $this->nbsp . '$2', $string);
+    }
+
+    /**
+     * Replace spaces between name initials and before the following surname.
+     *
+     * @param string $string The input string
+     * @return string The processed string
+     */
+    public function nameInitials(string $string): string
+    {
+        $pattern = '/(?<![\p{L}\p{N}.])((?:\p{Lu}\.\s+)+)(?=\p{Lu}[\p{L}\p{M}\x{2019}\x{0027}-]+)(?=[^>]*?(<|$))/u';
+
+        return preg_replace_callback($pattern, function ($matches) {
+            return preg_replace('/\s+/u', $this->nbsp, $matches[1]);
+        }, $string);
+    }
+
+    /**
+     * Replace spaces between specified symbols and following numbers.
+     *
+     * @param string $string The input string
+     * @param string|null $language Language code (e.g., 'en', 'cs')
+     * @return string The processed string
+     */
+    public function symbolsBeforeNumbers(string $string, ?string $language = null): string
+    {
+        $symbols = $this->getReplacements('symbolsBeforeNumbers', $language);
+
+        if (!$symbols) {
+            return $string;
+        }
+
+        $pattern = '/(?<![\p{L}\p{N}])(' . $this->arrayToRegex($symbols) . ')\s+(?=\d)(?=[^>]*?(<|$))/u';
+        return preg_replace($pattern, '$1' . $this->nbsp, $string);
+    }
+
+    /**
+     * Replace spaces between ordinal numbers and following lowercase words.
+     *
+     * @param string $string The input string
+     * @param string|null $language Language code (e.g., 'en', 'cs')
+     * @return string The processed string
+     */
+    public function ordinals(string $string, ?string $language = null): string
+    {
+        $suffixes = $this->getReplacements('ordinalSuffixes', $language);
+
+        if (!$suffixes) {
+            return $string;
+        }
+
+        $wordCases = $this->getReplacements('ordinalWordCases', $language) ?: ['lowercase'];
+        $casePatterns = [
+            'lowercase' => '\p{Ll}',
+            'uppercase' => '\p{Lu}',
+        ];
+        $wordPatterns = array_values(array_intersect_key($casePatterns, array_flip($wordCases)));
+
+        if (!$wordPatterns) {
+            return $string;
+        }
+
+        $pattern = '/(?<![\p{L}\p{N}.,])(\d+)(' . $this->arrayToRegex($suffixes) . ')\s+(?=' . implode('|', $wordPatterns) . ')(?=[^>]*?(<|$))/u';
+        return preg_replace($pattern, '$1$2' . $this->nbsp, $string);
+    }
+
+    /**
+     * Replace internal spaces in compound abbreviations and initial groups.
+     *
+     * @param string $string The input string
+     * @return string The processed string
+     */
+    public function compoundAbbreviations(string $string): string
+    {
+        $pattern = '/(?<![\p{L}\p{N}.])((?:\p{L}\.\s+)+\p{L}\.)(?!\p{L})(?=[^>]*?(<|$))/u';
+
+        return preg_replace_callback($pattern, function ($matches) {
+            return preg_replace('/\s+/u', $this->nbsp, $matches[1]);
+        }, $string);
+    }
+
+    /**
+     * Replace spaces around colons in ratios and scales.
+     *
+     * @param string $string The input string
+     * @return string The processed string
+     */
+    public function ratios(string $string): string
+    {
+        $pattern = '/(?<=\d)\s+:\s+(?=\d)(?=[^>]*?(<|$))/u';
+        return preg_replace($pattern, $this->nbsp . ':' . $this->nbsp, $string);
     }
 
     /**
@@ -229,7 +367,12 @@ class AutoNbsp
     public function beforeMonths(string $string, ?string $language = null): string
     {
         $months = $this->getReplacements('months', $language);
-        $pattern = '/(?<=\d)(\.?)\s+(' . $this->arrayToRegex($months) . ')(?=[^>]*?(<|$))/ui';
+
+        if (!$months) {
+            return $string;
+        }
+
+        $pattern = '/(?<=\d)(\.?)\s+(' . $this->arrayToRegex($months) . ')(?!\w)(?=[^>]*?(<|$))/ui';
         return preg_replace($pattern, '$1' . $this->nbsp . '$2', $string);
     }
 
@@ -256,41 +399,78 @@ class AutoNbsp
      */
     public function replace(string $string, ?string $language = null): string
     {
-        // spaces after words
-        $after_words = array_merge(
-            $this->prepositions_conjunctions ? $this->getReplacements('prepositions_conjunctions', $language) : [],
-            $this->articles ? $this->getReplacements('articles', $language) : [],
-            $this->titles ? $this->getReplacements('titles_before_name', $language) : [],
-            $this->abbreviations ? $this->getReplacements('abbreviations', $language) : []
-        );
-        if ($after_words) {
-            $string = $this->afterWords($string, $after_words);
+        if (str_contains($string, ' ') === false && preg_match('/\s/u', $string) === 0) {
+            return $string;
         }
 
         // spaces before words
-        if ($this->titles) {
-            $before_words = $this->getReplacements('titles_after_name', $language);
-            $string = $this->beforeWords($string, $before_words);
+        if ($this->rules['titles']) {
+            $beforeWords = $this->getReplacements('titlesAfterName', $language);
+            $string = $this->beforeWords($string, $beforeWords);
         }
 
-        // spaces between number and a month
-        if ($this->months) {
-            $string = $this->beforeMonths($string, $language);
+        // spaces after words
+        $afterWords = array_merge(
+            $this->rules['prepositionsConjunctions'] ? $this->getReplacements('prepositionsConjunctions', $language) : [],
+            $this->rules['articles'] ? $this->getReplacements('articles', $language) : [],
+            $this->rules['titles'] ? $this->getReplacements('titlesBeforeName', $language) : [],
+            $this->rules['abbreviations'] ? $this->getReplacements('abbreviations', $language) : []
+        );
+        if ($afterWords) {
+            $string = $this->afterWords($string, $afterWords);
         }
 
-        // spaces after a number
-        if ($this->after_numbers) {
-            $string = $this->afterNumbers($string);
+        // spaces between name initials and before a surname
+        if ($this->rules['nameInitials']) {
+            $string = $this->nameInitials($string);
         }
 
-        // spaces between two numbers
-        if ($this->between_numbers) {
-            $string = $this->betweenNumbers($string);
+        // internal spaces in compound abbreviations and initial groups
+        if ($this->rules['compoundAbbreviations']) {
+            $string = $this->compoundAbbreviations($string);
         }
 
-        // spaces between a number and a unit
-        if ($this->units) {
-            $string = $this->beforeUnits($string, $language);
+        $hasNumbers = strpbrk($string, '0123456789') !== false;
+
+        if ($hasNumbers === false) {
+            $hasNumbers = preg_match('/\d/u', $string) !== 0;
+        }
+
+        if ($hasNumbers) {
+            // spaces between number and a month
+            if ($this->rules['months']) {
+                $string = $this->beforeMonths($string, $language);
+            }
+
+            // spaces after a number
+            if ($this->rules['afterNumbers']) {
+                $string = $this->afterNumbers($string);
+            }
+
+            // spaces between two numbers
+            if ($this->rules['betweenNumbers']) {
+                $string = $this->betweenNumbers($string);
+            }
+
+            // spaces around colons in ratios and scales
+            if ($this->rules['ratios']) {
+                $string = $this->ratios($string);
+            }
+
+            // spaces between symbols and following numbers
+            if ($this->rules['symbolsBeforeNumbers']) {
+                $string = $this->symbolsBeforeNumbers($string, $language);
+            }
+
+            // spaces between ordinal numbers and following words
+            if ($this->rules['ordinals']) {
+                $string = $this->ordinals($string, $language);
+            }
+
+            // spaces between a number and a unit
+            if ($this->rules['units']) {
+                $string = $this->beforeUnits($string, $language);
+            }
         }
 
         return $string;
