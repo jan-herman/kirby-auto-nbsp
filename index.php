@@ -11,6 +11,7 @@ use Latte\Runtime\FilterInfo;
 Kirby::plugin('jan-herman/auto-nbsp', [
     'options' => [
         'debug' => false,
+        'autoApplyToHtml' => false,
         'customReplacements' => [], // 'language code or *' => 'prepositionsConjunctions', 'articles', 'abbreviations', 'units', 'months', 'titlesBeforeName', 'titlesAfterName', 'symbolsBeforeNumbers', 'ordinalSuffixes', 'ordinalWordCases'
         'rules' => AutoNbsp::DEFAULT_RULES,
     ],
@@ -21,8 +22,11 @@ Kirby::plugin('jan-herman/auto-nbsp', [
             return $field;
         }
     ],
-    // latte filter
+    // Barista integration
     'hooks' => [
+        'jan-herman.barista.toHtml:after' => function (string $html): string {
+            return option('jan-herman.auto-nbsp.autoApplyToHtml', false) ? nbsp($html) : $html;
+        },
         'jan-herman.barista.init:after' => function ($latte) {
             $latte->addFilter('nbsp', function (FilterInfo $info, string $string, ?string $language = null) {
                 $info->validate([null, ContentType::Text, ContentType::Html], 'nbsp');

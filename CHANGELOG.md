@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.0] - 2026-10-16
+### Added
+- opt-in `autoApplyToHtml` option for automatic formatting with Barista 1.18.0 or newer
+
+
 ## [1.2.0] - 2026-08-07
 ### Added
 - Replacement rules:

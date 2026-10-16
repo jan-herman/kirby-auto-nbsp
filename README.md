@@ -31,6 +31,18 @@ When [Kirby Barista](https://github.com/jan-herman/kirby-barista) initializes La
 {/block}
 ```
 
+## Automatic Barista formatting
+
+With [Kirby Barista](https://github.com/jan-herman/kirby-barista) 1.18.0 or newer, enable `autoApplyToHtml` to format every field converted with `toHtml()`:
+
+```php
+return [
+    'jan-herman.auto-nbsp' => [
+        'autoApplyToHtml' => true,
+    ],
+];
+```
+
 ## Options
 
 Options can be set in `config.php`; all rule options default to `true`. The top-level `language` setting is Kirby's global option, not an Auto Nbsp option.
@@ -52,6 +64,7 @@ Option names below are relative to `jan-herman.auto-nbsp`.
 
 | Option | Default | Description |
 | --- | --- | --- |
+| `autoApplyToHtml` | `false` | Automatically formats field `toHtml()` output with Barista 1.18.0 or newer. |
 | `debug` | `false` | Wraps every inserted non-breaking space in a red-highlighted `<span>` for visual debugging. |
 | `customReplacements` | `[]` | Extends built-in replacement groups for each supplied language code and removes duplicate values. |
 | `rules.prepositionsConjunctions` | `true` | Keeps configured short prepositions and conjunctions with the following word; `in Berlin` becomes `in&nbsp;Berlin`. |
